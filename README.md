@@ -108,4 +108,4 @@ src/
 
 This project is licensed under the MIT License.
 
-Made with ❤️ by [Able Abenaitwe]
+Made with ❤️ by Able Abenaitwe
