@@ -4,8 +4,8 @@ import { useCart } from "../contexts/CartContext";
 import { kicksApi, type Sneaker } from "../services/api";
 import { handleApiError } from "../services/errorUtils";
 import Alert from "../components/Alert";
-import Loader from "../components/Loader";
-import Skeleton from "../components/Skeleton";
+
+const AVAILABLE_SIZES = ["US 7", "US 8", "US 9", "US 10", "US 11", "US 12"];
 
 const SneakerPage = () => {
   const { id } = useParams();
@@ -21,13 +21,13 @@ const SneakerPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const { data } = await kicksApi.getKickById(id!);
-        setSneaker(data);
+        if (!id) throw new Error("Sneaker ID is required");
+        const response = await kicksApi.getKickById(parseInt(id));
+        setSneaker(response.data);
       } catch (err) {
         const errorMessage = handleApiError(err);
         setError(errorMessage);
         if (errorMessage.includes("not found")) {
-          // Redirect to home page after 3 seconds if sneaker not found
           setTimeout(() => navigate("/"), 3000);
         }
       } finally {
@@ -35,9 +35,7 @@ const SneakerPage = () => {
       }
     };
 
-    if (id) {
-      fetchSneaker();
-    }
+    fetchSneaker();
   }, [id, navigate]);
 
   const isInCart = cartItems.some(
@@ -47,14 +45,13 @@ const SneakerPage = () => {
 
   const handleAddToCart = () => {
     if (!selectedSize || !sneaker) return;
-
     addToCart({
       id: sneaker.id,
       name: sneaker.name,
-      price: sneaker.price,
+      price: parseFloat(sneaker.price),
       size: selectedSize,
       quantity: 1,
-      image: sneaker.images[0],
+      image: sneaker.image,
     });
   };
 
@@ -62,41 +59,14 @@ const SneakerPage = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Image Gallery Skeleton */}
-          <div className="space-y-4">
-            <Skeleton
-              variant="rectangular"
-              className="aspect-square w-full"
-              animation="wave"
-            />
-            <div className="grid grid-cols-3 gap-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton
-                  key={i}
-                  variant="rectangular"
-                  className="aspect-square w-full"
-                  animation="wave"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Product Info Skeleton */}
+          <div className="aspect-square rounded-lg overflow-hidden bg-mono-light-800 dark:bg-mono-dark-800 animate-pulse" />
           <div className="space-y-6">
-            <Skeleton variant="text" className="h-10 w-3/4" />
-            <Skeleton variant="text" className="h-8 w-1/4" />
-            <Skeleton variant="text" count={3} className="w-full" />
-
-            <div className="space-y-4">
-              <Skeleton variant="text" className="h-6 w-1/4" />
-              <div className="grid grid-cols-3 gap-3">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} variant="rectangular" className="h-12" />
-                ))}
-              </div>
+            <div className="h-10 bg-mono-light-800 dark:bg-mono-dark-800 rounded animate-pulse" />
+            <div className="h-8 w-1/4 bg-mono-light-800 dark:bg-mono-dark-800 rounded animate-pulse" />
+            <div className="space-y-2">
+              <div className="h-4 bg-mono-light-800 dark:bg-mono-dark-800 rounded animate-pulse" />
+              <div className="h-4 bg-mono-light-800 dark:bg-mono-dark-800 rounded animate-pulse w-3/4" />
             </div>
-
-            <Skeleton variant="rectangular" className="h-14 w-full mt-8" />
           </div>
         </div>
       </div>
@@ -114,29 +84,13 @@ const SneakerPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Image Gallery */}
-        <div className="space-y-4">
-          <div className="aspect-square rounded-lg overflow-hidden border border-mono-light-400 dark:border-mono-dark-400 bg-mono-light-800 dark:bg-mono-dark-800">
-            <img
-              src={sneaker.images[0]}
-              alt={sneaker.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            {sneaker.images.slice(1).map((img, idx) => (
-              <div
-                key={idx}
-                className="aspect-square rounded-lg overflow-hidden border border-mono-light-400 dark:border-mono-dark-400 hover:border-mono-dark dark:hover:border-mono-light cursor-pointer transition-all duration-300"
-              >
-                <img
-                  src={img}
-                  alt={`${sneaker.name} view ${idx + 2}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
+        {/* Image */}
+        <div className="aspect-square rounded-lg overflow-hidden border border-mono-light-400 dark:border-mono-dark-400 bg-mono-light-800 dark:bg-mono-dark-800">
+          <img
+            src={sneaker.image}
+            alt={sneaker.name}
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Product Info */}
@@ -145,11 +99,16 @@ const SneakerPage = () => {
             {sneaker.name}
           </h1>
           <p className="text-2xl text-mono-dark-600 dark:text-mono-light-600">
-            ${sneaker.price}
+            ${parseFloat(sneaker.price).toFixed(2)}
           </p>
           <p className="text-mono-dark-400 dark:text-mono-light-400">
             {sneaker.description}
           </p>
+
+          {/* Category */}
+          <div className="inline-block px-3 py-1 rounded-full bg-mono-light-800 dark:bg-mono-dark-800 text-mono-dark-600 dark:text-mono-light-600 text-sm">
+            {sneaker.category}
+          </div>
 
           {/* Size Selection */}
           <div className="space-y-4">
@@ -157,7 +116,7 @@ const SneakerPage = () => {
               Select Size
             </h3>
             <div className="grid grid-cols-3 gap-3">
-              {sneaker.sizes.map((size) => (
+              {AVAILABLE_SIZES.map((size) => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}

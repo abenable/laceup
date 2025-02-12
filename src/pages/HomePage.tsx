@@ -16,19 +16,6 @@ import Alert from "../components/Alert";
 import Skeleton from "../components/Skeleton";
 import { withLoading } from "../components/withLoading";
 
-// Adding interface to match the API response
-interface ApiResponse {
-  Kicks: number;
-  data: Array<{
-    id: number;
-    name: string;
-    description: string;
-    price: string; // API returns price as string
-    category: string;
-    image: string;
-  }>;
-}
-
 const FeatureCard = ({
   icon: Icon,
   title,
@@ -80,43 +67,12 @@ const HomePage = () => {
       try {
         setError(null);
         const response = await kicksApi.getAllKicks();
-
-        // Check if response exists and has expected structure
-        if (
-          !response?.data ||
-          !("Kicks" in response.data) ||
-          !("data" in response.data)
-        ) {
-          throw new Error("Invalid response format from server");
-        }
-
-        const apiResponse = response.data as ApiResponse;
-
-        // Transform API data to match Sneaker type
-        const transformedSneakers = apiResponse.data.map((item) => ({
-          id: item.id,
-          name: item.name,
-          price: parseFloat(item.price), // Convert string price to number
-          description: item.description,
-          category: item.category,
-          images: [item.image], // Wrap single image in array to match expected format
-          sizes: ["US 7", "US 8", "US 9", "US 10", "US 11", "US 12"], // Default sizes since API doesn't provide them
-          rating: 4 + Math.random(),
-          reviewCount: Math.floor(Math.random() * 500),
-          badges:
-            parseFloat(item.price) > 200
-              ? (["best-seller", "limited-stock"] as Array<
-                  "best-seller" | "limited-stock" | "new" | "trending"
-                >)
-              : undefined,
-        }));
-
-        setSneakers(transformedSneakers);
+        setSneakers(response.data.data);
       } catch (err) {
         const errorMessage = handleApiError(err);
         console.error("Error fetching sneakers:", err);
         setError(errorMessage);
-        setSneakers([]); // Reset to empty array on error
+        setSneakers([]);
       } finally {
         setLoading(false);
       }
@@ -143,10 +99,10 @@ const HomePage = () => {
       addToCart({
         id: sneaker.id,
         name: sneaker.name,
-        price: sneaker.price,
+        price: parseFloat(sneaker.price),
         size: defaultSize,
         quantity: 1,
-        image: sneaker.images[0],
+        image: sneaker.image,
       });
     } else {
       const cartItem = findItemInCart(sneaker.id);
@@ -313,53 +269,35 @@ const HomePage = () => {
             >
               <div className="aspect-square overflow-hidden relative">
                 <img
-                  src={sneaker.images[0]}
+                  src={sneaker.image}
                   alt={sneaker.name}
                   className="w-full h-full object-cover transform group-hover:opacity-0 transition-all duration-500"
                 />
                 <img
-                  src={sneaker.alternateImage || sneaker.images[0]}
+                  src={sneaker.image}
                   alt={`${sneaker.name} alternate view`}
                   className="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500"
                 />
-                {sneaker.badges && sneaker.badges.length > 0 && (
-                  <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    {sneaker.badges.map((badge) => (
-                      <span
-                        key={badge}
-                        className="px-2 py-1 text-xs font-semibold rounded-full bg-red-500 text-white"
-                      >
-                        {badge === "best-seller"
-                          ? "Best Seller"
-                          : badge === "limited-stock"
-                          ? "Limited Stock"
-                          : badge === "new"
-                          ? "New Arrival"
-                          : "Trending"}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
               <div className="p-4 sm:p-6">
                 <h3 className="text-mono-dark dark:text-mono-light font-semibold text-base sm:text-lg mb-2 sm:mb-3 line-clamp-2">
                   {sneaker.name}
                 </h3>
                 <div className="flex items-center gap-2 mb-3">
-                  <StarRating rating={Math.floor(sneaker.rating || 0)} />
+                  <StarRating rating={4} />
                   <span className="text-sm text-mono-dark-600 dark:text-mono-light-600">
-                    ({sneaker.reviewCount || 0})
+                    (24)
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="space-y-1">
                     <span className="text-lg sm:text-xl font-bold text-mono-dark dark:text-mono-light">
-                      ${sneaker.price}
+                      ${parseFloat(sneaker.price).toFixed(2)}
                     </span>
-                    {sneaker.price >= 200 && (
+                    {parseFloat(sneaker.price) >= 200 && (
                       <div className="flex items-center gap-2">
                         <span className="text-xs sm:text-sm line-through text-mono-dark-600 dark:text-mono-light-600">
-                          ${(sneaker.price * 1.2).toFixed(2)}
+                          ${(parseFloat(sneaker.price) * 1.2).toFixed(2)}
                         </span>
                         <span className="text-xs px-2 py-0.5 sm:py-1 bg-red-500 text-white rounded-full">
                           -20%
