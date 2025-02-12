@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+@layer base {
+  body {
+    @apply m-0 min-h-screen antialiased bg-mono-light dark:bg-mono-dark text-mono-dark dark:text-mono-light;
+  }
+
+  ::selection {
+    @apply bg-mono-dark/30 dark:bg-mono-light/30 text-mono-dark dark:text-mono-light;
+  }
+
+  /* Enhanced input styles */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    @apply transition-shadow duration-200 ease-in-out;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus {
+    @apply ring-2 ring-mono-dark/30 dark:ring-mono-light/30 ring-offset-2 ring-offset-mono-light dark:ring-offset-mono-dark;
+  }
+
+  /* Enhanced button styles */
+  button,
+  .button {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Enhanced link styles */
+  a {
+    @apply transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .glassmorphism {
+    @apply backdrop-blur-md bg-mono-light-800/80 dark:bg-mono-dark-800/80 border border-mono-light-400 dark:border-mono-dark-400;
+  }
+
+  /* Enhanced form styles */
+  .form-label {
+    @apply text-mono-dark-600 dark:text-mono-light-600 text-sm font-medium mb-1 block;
+  }
+
+  .form-input {
+    @apply w-full p-3 bg-mono-light dark:bg-mono-dark border-2 border-mono-light-400 dark:border-mono-dark-400 
+           rounded-lg focus:ring-2 focus:ring-mono-dark/30 dark:focus:ring-mono-light/30 
+           focus:border-mono-dark dark:focus:border-mono-light outline-none transition-all duration-200
+           text-mono-dark dark:text-mono-light placeholder-mono-dark-400 dark:placeholder-mono-light-400;
+  }
+
+  .oauth-button {
+    @apply flex items-center justify-center gap-2 p-4 border-2 rounded-lg 
+           shadow-button hover:shadow-button-hover transition-all duration-200
+           bg-mono-light dark:bg-mono-dark text-mono-dark dark:text-mono-light
+           border-mono-light-400 dark:border-mono-dark-400
+           hover:border-mono-dark/30 dark:hover:border-mono-light/30;
+  }
+
+  .separator {
+    @apply relative flex items-center my-8;
+  }
+
+  .separator::before,
+  .separator::after {
+    @apply content-[''] flex-1 border-t border-mono-light-400 dark:border-mono-dark-400 opacity-50;
+  }
+
+  .separator-text {
+    @apply px-4 text-sm text-mono-dark-600 dark:text-mono-light-600;
+  }
+}
+
+@layer utilities {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-mono-light dark:bg-mono-dark;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-mono-dark/50 dark:bg-mono-light/50 rounded-full hover:bg-mono-dark hover:dark:bg-mono-light transition-colors duration-300;
+  }
+}
