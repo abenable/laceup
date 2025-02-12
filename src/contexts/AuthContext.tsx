@@ -5,14 +5,14 @@ import {
   ReactNode,
   useEffect,
 } from "react";
-import {
-  authApi,
-  type User,
-  type LoginCredentials,
-  type RegisterData,
-  ApiError,
-} from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { authApi } from "../services/authApi";
+import type {
+  User,
+  LoginCredentials,
+  RegisterData,
+  AuthResponse,
+} from "../services/authApi";
 
 interface AuthContextType {
   user: User | null;
@@ -20,7 +20,14 @@ interface AuthContextType {
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
+  adminRegister: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (data: { token: string; password: string }) => Promise<void>;
+  updatePassword: (data: {
+    oldPassword: string;
+    newPassword: string;
+  }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -36,62 +43,134 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const { data } = await authApi.getCurrentUser();
-        setUser(data);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
-          localStorage.removeItem("token");
-        }
-        // Silent fail for initial auth check
+    try {
+      const response = await authApi.checkAuth();
+      if (response.status === "success" && response.user) {
+        setUser(response.user);
       }
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleError = (err: unknown) => {
-    if (err instanceof ApiError) {
+    if (err instanceof Error) {
       setError(err.message);
     } else {
       setError("An unexpected error occurred");
     }
-    throw err; // Re-throw to allow components to handle the error
+    throw err;
   };
 
   const login = async (credentials: LoginCredentials) => {
     try {
       setError(null);
-      const { data } = await authApi.login(credentials);
-      localStorage.setItem("token", data.token);
-      setUser(data.user);
+      const response = await authApi.login(credentials);
+      if (response.user) {
+        setUser(response.user);
+        navigate("/");
+      }
     } catch (err) {
       handleError(err);
     }
   };
 
-  const register = async (registerData: RegisterData) => {
+  const register = async (data: RegisterData) => {
     try {
       setError(null);
-      const { data } = await authApi.register(registerData);
-      localStorage.setItem("token", data.token);
-      setUser(data.user);
+      const response = await authApi.register(data);
+      if (response.user) {
+        setUser(response.user);
+        navigate("/");
+      }
     } catch (err) {
       handleError(err);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    navigate("/login");
+  const adminRegister = async (data: RegisterData) => {
+    try {
+      setError(null);
+      const response = await authApi.adminRegister(data);
+      if (response.user) {
+        setUser(response.user);
+        navigate("/admin");
+      }
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await authApi.logout();
+      setUser(null);
+      navigate("/login");
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const forgotPassword = async (email: string) => {
+    try {
+      setError(null);
+      await authApi.forgotPassword(email);
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const resetPassword = async ({
+    token,
+    password,
+  }: {
+    token: string;
+    password: string;
+  }) => {
+    try {
+      setError(null);
+      await authApi.resetPassword({ token, password });
+      navigate("/login");
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const updatePassword = async ({
+    oldPassword,
+    newPassword,
+  }: {
+    oldPassword: string;
+    newPassword: string;
+  }) => {
+    try {
+      setError(null);
+      await authApi.updatePassword({
+        oldpassword: oldPassword,
+        newpassword: newPassword,
+      });
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    loading,
+    error,
+    login,
+    register,
+    adminRegister,
+    logout,
+    forgotPassword,
+    resetPassword,
+    updatePassword,
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, error, login, register, logout }}
-    >
+    <AuthContext.Provider value={value}>
       {!loading && children}
     </AuthContext.Provider>
   );
