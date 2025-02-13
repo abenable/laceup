@@ -5,9 +5,7 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterData extends LoginCredentials {
-  username: string;
-}
+export interface RegisterData extends LoginCredentials {}
 
 export interface PasswordReset {
   token: string;
