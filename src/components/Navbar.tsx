@@ -16,7 +16,7 @@ import Skeleton from "./Skeleton";
 const Navbar = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { user, logout } = useAuth()!;
-  const { totalItems } = useCart();
+  const { getItemCount } = useCart();
   const { isLoading } = useLoading();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -25,6 +25,7 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const menuItemRefs = useRef<(HTMLAnchorElement | HTMLButtonElement)[]>([]);
+  const totalItems = getItemCount();
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Escape") {
