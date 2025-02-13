@@ -7,12 +7,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../services/authApi";
-import type {
-  User,
-  LoginCredentials,
-  RegisterData,
-  AuthResponse,
-} from "../services/authApi";
+import type { User, LoginCredentials, RegisterData } from "../services/authApi";
 
 interface AuthContextType {
   user: User | null;
@@ -46,7 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await authApi.checkAuth();
       console.log(response.message);
-
       if (response.status === "success" && response.user) {
         setUser(response.user);
       }
