@@ -1,5 +1,5 @@
 import React from "react";
-import PulseEffect from "./PulseEffect";
+import PulseEffect from "../../components/PulseEffect";
 
 interface LoaderProps {
   size?: "small" | "medium" | "large";
