@@ -116,7 +116,8 @@ class AuthApi {
 
   async checkAuth(): Promise<AuthResponse> {
     try {
-      const response = await api.get("/auth/check");
+      const response = await api.get("/auth/isAuthenticated");
+      console.log(response.data); // Log the entire response object
       return response.data;
     } catch (error: any) {
       throw new Error(
