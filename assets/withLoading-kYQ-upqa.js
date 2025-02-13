@@ -1,0 +1,1 @@
+import{d as a,r as n,j as u}from"./index-u7CGEq5-.js";const c=(i,o=300)=>t=>{const{startLoading:e,stopLoading:s}=a();return n.useEffect(()=>{if(t.isLoading){const r=setTimeout(()=>{e()},o);return()=>{clearTimeout(r),s()}}else s()},[t.isLoading,e,s]),u.jsx(i,{...t})};export{c as w};
