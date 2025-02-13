@@ -6,13 +6,11 @@ import Alert from "../components/Alert";
 import Loader from "../components/Loader";
 
 interface ShippingDetails {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   address: string;
   city: string;
-  zipCode: string;
-  country: string;
+  phoneNumber: string;
 }
 
 const CheckoutPage = () => {
@@ -21,13 +19,11 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shippingDetails, setShippingDetails] = useState<ShippingDetails>({
-    firstName: "",
-    lastName: "",
+    fullName: "",
     email: "",
     address: "",
     city: "",
-    zipCode: "",
-    country: "",
+    phoneNumber: "",
   });
 
   const subtotal = cartItems.reduce(
@@ -49,16 +45,16 @@ const CheckoutPage = () => {
     setError(null);
 
     try {
-      const orderData = {
-        items: cartItems,
-        shipping: shippingDetails,
-        subtotal,
-        tax,
-        shipping_fee: shipping,
-        total,
-      };
+      const orderItems = cartItems.map((item) => ({
+        customerId: shippingDetails.email, // Assuming email as customerId
+        productId: item.id,
+        quantity: item.quantity,
+      }));
 
-      await ordersApi.addOrder(orderData);
+      for (const orderItem of orderItems) {
+        await ordersApi.addOrder(orderItem);
+      }
+
       clearCart();
       navigate("/order-success");
     } catch (err) {
@@ -93,41 +89,22 @@ const CheckoutPage = () => {
               Shipping Details
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="firstName"
-                    className="block text-sm font-medium text-cyber-dark dark:text-cyber-light mb-1"
-                  >
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={shippingDetails.firstName}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="lastName"
-                    className="block text-sm font-medium text-cyber-dark dark:text-cyber-light mb-1"
-                  >
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={shippingDetails.lastName}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
-                  />
-                </div>
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="block text-sm font-medium text-cyber-dark dark:text-cyber-light mb-1"
+                >
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={shippingDetails.fullName}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
+                />
               </div>
 
               <div>
@@ -142,6 +119,24 @@ const CheckoutPage = () => {
                   id="email"
                   name="email"
                   value={shippingDetails.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="phoneNumber"
+                  className="block text-sm font-medium text-cyber-dark dark:text-cyber-light mb-1"
+                >
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={shippingDetails.phoneNumber}
                   onChange={handleChange}
                   required
                   className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
@@ -184,50 +179,15 @@ const CheckoutPage = () => {
                     className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
                   />
                 </div>
-                <div>
-                  <label
-                    htmlFor="zipCode"
-                    className="block text-sm font-medium text-cyber-dark dark:text-cyber-light mb-1"
-                  >
-                    ZIP Code
-                  </label>
-                  <input
-                    type="text"
-                    id="zipCode"
-                    name="zipCode"
-                    value={shippingDetails.zipCode}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="country"
-                  className="block text-sm font-medium text-cyber-dark dark:text-cyber-light mb-1"
-                >
-                  Country
-                </label>
-                <input
-                  type="text"
-                  id="country"
-                  name="country"
-                  value={shippingDetails.country}
-                  onChange={handleChange}
-                  required
-                  className="w-full p-3 bg-white dark:bg-cyber-dark/50 border border-cyber-primary/30 rounded-lg focus:ring-2 focus:ring-cyber-primary focus:border-transparent outline-none transition text-cyber-dark dark:text-cyber-light"
-                />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-3 bg-cyber-primary text-cyber-light rounded-lg font-semibold transition-all duration-300 ${
+                className={`w-full py-3 bg-cyber-primary text-cyber-light rounded-lg font-semibold transition-all duration-300 text-lg ${
                   loading
                     ? "opacity-70 cursor-not-allowed"
-                    : "hover:bg-cyber-primary-hover"
+                    : "hover:bg-cyber-primary-hover hover:shadow-lg"
                 }`}
               >
                 {loading ? (
