@@ -33,8 +33,36 @@ export interface AuthResponse {
 
 class AuthApi {
   private static instance: AuthApi;
+  private tokenRefreshTimeout: NodeJS.Timeout | null = null;
 
-  private constructor() {}
+  private constructor() {
+    // Initialize token refresh mechanism
+    this.setupTokenRefresh();
+  }
+
+  private setupTokenRefresh() {
+    // Clear any existing timeout
+    if (this.tokenRefreshTimeout) {
+      clearTimeout(this.tokenRefreshTimeout);
+    }
+
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      try {
+        // Set up periodic token refresh (every 14 minutes if token expires in 15)
+        this.tokenRefreshTimeout = setInterval(() => {
+          this.checkAuth().catch(() => {
+            // If refresh fails, clear the interval
+            if (this.tokenRefreshTimeout) {
+              clearInterval(this.tokenRefreshTimeout);
+            }
+          });
+        }, 14 * 60 * 1000);
+      } catch (error) {
+        console.error("Failed to setup token refresh:", error);
+      }
+    }
+  }
 
   static getInstance(): AuthApi {
     if (!AuthApi.instance) {
@@ -74,7 +102,12 @@ class AuthApi {
 
   async logout(): Promise<AuthResponse> {
     try {
+      if (this.tokenRefreshTimeout) {
+        clearTimeout(this.tokenRefreshTimeout);
+      }
       const response = await api.post("/auth/logout");
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Logout failed");
@@ -114,10 +147,37 @@ class AuthApi {
 
   async checkAuth(): Promise<AuthResponse> {
     try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        throw new Error("No auth token found");
+      }
+
       const response = await api.get("/auth/isAuthenticated");
-      console.log(response.data); // Log the entire response object
-      return response.data;
+
+      // Important: Always keep the existing token unless explicitly given a new one
+      if (response.data.status === "success") {
+        if (response.data.token && response.data.token !== token) {
+          localStorage.setItem("auth_token", response.data.token);
+          this.setupTokenRefresh();
+        }
+
+        // Even if we don't get a new token, keep the existing one
+        if (response.data.user) {
+          localStorage.setItem("auth_user", JSON.stringify(response.data.user));
+        }
+        return response.data;
+      } else {
+        throw new Error("Authentication failed");
+      }
     } catch (error: any) {
+      // Don't automatically clear token on network errors
+      if (error.message !== "Network Error") {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("auth_user");
+        if (this.tokenRefreshTimeout) {
+          clearTimeout(this.tokenRefreshTimeout);
+        }
+      }
       throw new Error(
         error.response?.data?.message || "Authentication check failed"
       );

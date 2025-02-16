@@ -53,46 +53,87 @@ export class ApiError extends Error {
   }
 }
 
+const TOKEN_KEY = "auth_token";
+const USER_KEY = "auth_user";
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true, // Enable sending cookies with requests
   headers: {
     "Content-Type": "application/json",
-    // Remove any default CORS headers as they should be handled by the server
   },
 });
 
 // Request interceptor for adding auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
-// Response interceptor for handling errors
+// Response interceptor for handling tokens and errors
 api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
+  (response) => {
+    // Always preserve the token unless explicitly told to change it
+    if (response.data?.token) {
+      localStorage.setItem(TOKEN_KEY, response.data.token);
+    }
+    if (response.data?.user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+    }
+    return response;
+  },
+  async (error: AxiosError) => {
+    const originalRequest: any = error.config;
+
     if (error.response) {
       const status = error.response.status;
       const message = (error.response.data as any)?.message || error.message;
-      const data = error.response.data;
 
-      if (status === 401) {
-        localStorage.removeItem("token");
-        // Redirect to login if needed
+      // Handle 401 Unauthorized errors
+      if (status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        // Try to refresh the session
+        try {
+          const response = await api.get("/auth/isAuthenticated");
+          if (response.data?.token) {
+            localStorage.setItem(TOKEN_KEY, response.data.token);
+            // Retry the original request with new token
+            originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
+            return api(originalRequest);
+          }
+        } catch (refreshError) {
+          // Only clear auth data and redirect if not already on login page
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes("/login")) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            window.location.href = `/login?redirect=${encodeURIComponent(
+              currentPath
+            )}`;
+          }
+        }
       }
-      throw new ApiError(status, message, data);
+
+      throw new ApiError(status, message, error.response.data);
     }
-    // Network errors or CORS errors
+
+    // Handle network errors without clearing auth
     if (error.message === "Network Error") {
       throw new ApiError(
         0,
         "Unable to connect to the server. Please check your connection."
       );
     }
+
     throw new ApiError(500, error.message || "Network Error");
   }
 );
@@ -104,9 +145,10 @@ export const authApi = {
       status: string;
       message: string;
       user: User;
+      token: string;
     }>("/auth/login", credentials);
-    if (response.data.user) {
-      localStorage.setItem("token", response.data.user.id);
+    if (response.data.token) {
+      localStorage.setItem(TOKEN_KEY, response.data.token);
     }
     return response.data;
   },
@@ -115,10 +157,11 @@ export const authApi = {
     const response = await api.post<{
       status: string;
       message: string;
-      User: User;
+      user: User;
+      token: string;
     }>("/auth/register", data);
-    if (response.data.User) {
-      localStorage.setItem("token", response.data.User.id);
+    if (response.data.token) {
+      localStorage.setItem(TOKEN_KEY, response.data.token);
     }
     return response.data;
   },
@@ -127,10 +170,11 @@ export const authApi = {
     const response = await api.post<{
       status: string;
       message: string;
-      User: User;
+      user: User;
+      token: string;
     }>("/auth/admin/register", data);
-    if (response.data.User) {
-      localStorage.setItem("token", response.data.User.id);
+    if (response.data.token) {
+      localStorage.setItem(TOKEN_KEY, response.data.token);
     }
     return response.data;
   },
@@ -139,7 +183,7 @@ export const authApi = {
     const response = await api.post<{ status: string; message: string }>(
       "/auth/logout"
     );
-    localStorage.removeItem("token");
+    localStorage.removeItem(TOKEN_KEY);
     return response.data;
   },
 
@@ -165,7 +209,21 @@ export const authApi = {
   },
 
   checkAuth: async () => {
-    return api.get<{ status: string; message: string }>("/auth/check");
+    try {
+      const response = await api.get<{
+        status: string;
+        message: string;
+        user: User;
+        token: string;
+      }>("/auth/check");
+      if (response.data.token) {
+        localStorage.setItem(TOKEN_KEY, response.data.token);
+      }
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem(TOKEN_KEY);
+      throw error;
+    }
   },
 };
 
