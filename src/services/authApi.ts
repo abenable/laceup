@@ -49,15 +49,20 @@ class AuthApi {
     const token = localStorage.getItem("auth_token");
     if (token) {
       try {
-        // Set up periodic token refresh (every 14 minutes if token expires in 15)
-        this.tokenRefreshTimeout = setInterval(() => {
-          this.checkAuth().catch(() => {
-            // If refresh fails, clear the interval
+        // Set up periodic token refresh (every 10 minutes)
+        this.tokenRefreshTimeout = setInterval(async () => {
+          try {
+            await this.checkAuth();
+          } catch (error) {
+            // If refresh fails, clear the interval and localStorage
             if (this.tokenRefreshTimeout) {
               clearInterval(this.tokenRefreshTimeout);
+              this.tokenRefreshTimeout = null;
             }
-          });
-        }, 14 * 60 * 1000);
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("auth_user");
+          }
+        }, 10 * 60 * 1000); // 10 minutes
       } catch (error) {
         console.error("Failed to setup token refresh:", error);
       }
@@ -154,14 +159,13 @@ class AuthApi {
 
       const response = await api.get("/auth/isAuthenticated");
 
-      // Important: Always keep the existing token unless explicitly given a new one
+      // If we get a successful response, update the stored data
       if (response.data.status === "success") {
         if (response.data.token && response.data.token !== token) {
           localStorage.setItem("auth_token", response.data.token);
           this.setupTokenRefresh();
         }
 
-        // Even if we don't get a new token, keep the existing one
         if (response.data.user) {
           localStorage.setItem("auth_user", JSON.stringify(response.data.user));
         }
@@ -170,8 +174,8 @@ class AuthApi {
         throw new Error("Authentication failed");
       }
     } catch (error: any) {
-      // Don't automatically clear token on network errors
-      if (error.message !== "Network Error") {
+      // Only clear authentication data for specific auth failures, not network errors
+      if (error.response?.status === 401 || error.response?.status === 403) {
         localStorage.removeItem("auth_token");
         localStorage.removeItem("auth_user");
         if (this.tokenRefreshTimeout) {
