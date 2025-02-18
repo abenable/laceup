@@ -45,14 +45,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         (i) => i.id === item.id && i.size === item.size
       );
       if (existingItem) {
-        showToast("Updated quantity in cart", "info");
-        return items.map((i) =>
+        const updatedItems = items.map((i) =>
           i.id === item.id && i.size === item.size
             ? { ...i, quantity: i.quantity + item.quantity }
             : i
         );
+        setTimeout(() => showToast("Updated quantity in cart", "info"), 0);
+        return updatedItems;
       }
-      showToast("Added to cart", "success");
+      setTimeout(() => showToast("Added to cart", "success"), 0);
       return [...items, item];
     });
   };
@@ -61,7 +62,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCartItems((items) =>
       items.filter((item) => !(item.id === id && item.size === size))
     );
-    showToast("Removed from cart", "info");
+    setTimeout(() => showToast("Removed from cart", "info"), 0);
   };
 
   const updateQuantity = (id: number, size: string, quantity: number) => {
