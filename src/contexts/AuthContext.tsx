@@ -5,7 +5,7 @@ import {
   ReactNode,
   useEffect,
 } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { authApi } from "../services/authApi";
 import type { User, LoginCredentials, RegisterData } from "../services/authApi";
 
@@ -38,7 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Verify token and refresh user data
   const verifySession = async () => {
@@ -50,13 +49,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const response = await authApi.checkAuth();
-      if (response.status === "success") {
-        // Always update user data if available
-        if (response.user) {
-          setUserData(response.user);
-        }
-        // Always keep existing token unless explicitly given a new one
+      const response = await authApi.login({
+        email: user?.email || "",
+        password: "",
+      });
+      if (response.user) {
+        setUserData(response.user);
         if (response.token) {
           setToken(response.token);
         }
@@ -64,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return false;
     } catch (err) {
-      // Only clear auth data if it's an authentication error
+      // Only clear on actual auth errors, not network errors
       if (err instanceof Error && err.message.includes("auth")) {
         setToken(undefined);
         setUserData(null);
@@ -76,10 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const isValid = await verifySession();
-        // Only redirect to login if not already on login page and session is invalid
-        if (!isValid && !location.pathname.startsWith("/login")) {
-          navigate("/login", { state: { from: location.pathname } });
+        if (localStorage.getItem(TOKEN_KEY)) {
+          await verifySession();
         }
       } finally {
         setLoading(false);
@@ -89,24 +85,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
   }, []);
 
-  // Verify session periodically and before critical operations
+  // Remove periodic verification since we're handling it in the API interceptor
   useEffect(() => {
-    const interval = setInterval(verifySession, 4 * 60 * 1000); // Check every 4 minutes
-
-    // Also verify when tab becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        verifySession();
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible" && user) {
+        await verifySession();
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
-      clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [user]);
 
   const setToken = (token: string | undefined) => {
     if (token) {
@@ -184,6 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
+      setError(null);
       await authApi.logout();
       setUserData(null);
       setToken(undefined);
