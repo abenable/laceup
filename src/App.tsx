@@ -31,6 +31,8 @@ const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 const TermsAndConditionsPage = lazy(
   () => import("./pages/TermsAndConditionsPage")
 );
+const AccountPage = lazy(() => import("./pages/AccountPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
 function App() {
   return (
@@ -121,6 +123,24 @@ function App() {
                         <Route
                           path="/terms"
                           element={<TermsAndConditionsPage />}
+                          errorElement={<RouteErrorBoundary />}
+                        />
+                        <Route
+                          path="/account"
+                          element={
+                            <ProtectedRoute>
+                              <AccountPage />
+                            </ProtectedRoute>
+                          }
+                          errorElement={<RouteErrorBoundary />}
+                        />
+                        <Route
+                          path="/settings"
+                          element={
+                            <ProtectedRoute>
+                              <SettingsPage />
+                            </ProtectedRoute>
+                          }
                           errorElement={<RouteErrorBoundary />}
                         />
                         <Route path="*" element={<RouteErrorBoundary />} />
