@@ -41,6 +41,11 @@ export interface Order {
   quantity: number;
 }
 
+interface ErrorResponse {
+  message?: string;
+  [key: string]: any;
+}
+
 // API Error handling
 export class ApiError extends Error {
   constructor(
@@ -62,6 +67,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Request interceptor for adding auth token
@@ -73,68 +79,67 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for handling tokens and errors
 api.interceptors.response.use(
   (response) => {
-    // Always preserve the token unless explicitly told to change it
     if (response.data?.token) {
       localStorage.setItem(TOKEN_KEY, response.data.token);
     }
-    if (response.data?.user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
-    }
     return response;
   },
-  async (error: AxiosError) => {
+  async (error: AxiosError<ErrorResponse>) => {
     const originalRequest: any = error.config;
 
-    if (error.response) {
-      const status = error.response.status;
-      const message = (error.response.data as any)?.message || error.message;
-
-      // Handle 401 Unauthorized errors
-      if (status === 401 && !originalRequest._retry) {
-        originalRequest._retry = true;
-
-        // Try to refresh the session
-        try {
-          const response = await api.get("/auth/isAuthenticated");
-          if (response.data?.token) {
-            localStorage.setItem(TOKEN_KEY, response.data.token);
-            // Retry the original request with new token
-            originalRequest.headers.Authorization = `Bearer ${response.data.token}`;
-            return api(originalRequest);
-          }
-        } catch (refreshError) {
-          // Only clear auth data and redirect if not already on login page
-          const currentPath = window.location.pathname;
-          if (!currentPath.includes("/login")) {
-            localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem(USER_KEY);
-            window.location.href = `/login?redirect=${encodeURIComponent(
-              currentPath
-            )}`;
-          }
-        }
-      }
-
-      throw new ApiError(status, message, error.response.data);
+    if (!originalRequest || originalRequest._retry) {
+      throw new ApiError(
+        error.response?.status || 500,
+        error.response?.data?.message || error.message,
+        error.response?.data
+      );
     }
 
-    // Handle network errors without clearing auth
-    if (error.message === "Network Error") {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest.url?.includes("/auth/")
+    ) {
+      originalRequest._retry = true;
+      try {
+        const response = await authApi.checkAuth();
+        if (response.token) {
+          localStorage.setItem(TOKEN_KEY, response.token);
+          originalRequest.headers.Authorization = `Bearer ${response.token}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        window.location.href = `/login?redirect=${encodeURIComponent(
+          window.location.pathname
+        )}`;
+        throw refreshError;
+      }
+    }
+
+    // Handle other errors
+    if (error.response) {
+      throw new ApiError(
+        error.response.status,
+        error.response.data?.message || "An error occurred",
+        error.response.data
+      );
+    }
+
+    if (!error.response && error.message === "Network Error") {
       throw new ApiError(
         0,
         "Unable to connect to the server. Please check your connection."
       );
     }
 
-    throw new ApiError(500, error.message || "Network Error");
+    throw new ApiError(500, error.message || "An unexpected error occurred");
   }
 );
 
@@ -250,21 +255,19 @@ export const kicksApi = {
 
 export const categoriesApi = {
   getAllCategories: () =>
-    api.get<{ Categories: number; data: Category[] }>("/categories"),
+    api.get<{ Categories: number; data: Category[] }>("/laceup/categories"),
 
-  getCategoryById: (id: number) => api.get<Category>(`/category/${id}`),
+  getCategoryById: (id: number) => api.get<Category>(`/laceup/category/${id}`),
 };
 
 export const ordersApi = {
-  getAllOrders: () => api.get<{ Orders: number; data: Order[] }>("/orders"),
+  getAllOrders: () =>
+    api.get<{ Orders: number; data: Order[] }>("/laceup/orders"),
 
-  getOrderById: (id: number) => api.get<Order>(`/orders/${id}`),
+  getOrderById: (id: number) => api.get<Order>(`/laceup/orders/${id}`),
 
-  addOrder: (data: {
-    customerId: string;
-    productId: number;
-    quantity: number;
-  }) => api.post<Order>("/orders", data),
+  addOrder: (data: { kickId: number; quantity: number }) =>
+    api.post<Order>("/laceup/orders", data),
 };
 
 export default api;
