@@ -4,6 +4,7 @@ import { useCart } from "../contexts/CartContext";
 import { ordersApi } from "../services/api";
 import Alert from "../components/Alert";
 import Loader from "../components/Loader";
+import { useAuth } from "../contexts/AuthContext";
 
 interface ShippingDetails {
   fullName: string;
@@ -16,11 +17,12 @@ interface ShippingDetails {
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cartItems, clearCart } = useCart();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shippingDetails, setShippingDetails] = useState<ShippingDetails>({
-    fullName: "",
-    email: "",
+    fullName: user?.username || "",
+    email: user?.email || "",
     address: "",
     city: "",
     phoneNumber: "",
@@ -30,8 +32,8 @@ const CheckoutPage = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const shipping = 0; // Free shipping
-  const tax = subtotal * 0.1; // 10% tax
+  const shipping = 0;
+  const tax = subtotal * 0.1;
   const total = subtotal + shipping + tax;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,24 +43,34 @@ const CheckoutPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setError("Please login to complete your purchase");
+      navigate("/login", { state: { from: "/checkout" } });
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const orderItems = cartItems.map((item) => ({
-        customerId: shippingDetails.email, // Assuming email as customerId
-        productId: item.id,
-        quantity: item.quantity,
-      }));
-
-      for (const orderItem of orderItems) {
-        await ordersApi.addOrder(orderItem);
-      }
+      // Create orders for each item in cart
+      await Promise.all(
+        cartItems.map((item) =>
+          ordersApi.addOrder({
+            kickId: item.id,
+            quantity: item.quantity,
+          })
+        )
+      );
 
       clearCart();
       navigate("/order-success");
     } catch (err) {
-      setError("Failed to place order. Please try again.");
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to place order. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -70,8 +82,20 @@ const CheckoutPage = () => {
         <Alert type="info">
           Your cart is empty. Please add items before checking out.
         </Alert>
+        <div className="mt-4">
+          <button
+            onClick={() => navigate("/")}
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark"
+          >
+            Continue Shopping
+          </button>
+        </div>
       </div>
     );
+  }
+
+  if (loading) {
+    return <Loader />;
   }
 
   return (
