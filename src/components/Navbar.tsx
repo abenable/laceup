@@ -297,9 +297,13 @@ const Navbar = () => {
                     Settings
                   </Link>
                   <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      logout();
+                    onClick={async () => {
+                      try {
+                        setIsDropdownOpen(false);
+                        await logout();
+                      } catch (err) {
+                        console.error("Logout failed:", err);
+                      }
                     }}
                     className="w-full text-left px-6 py-3 text-mono-dark dark:text-mono-light hover:bg-mono-dark/10 dark:hover:bg-mono-light/10 transition-all duration-300"
                     role="menuitem"
