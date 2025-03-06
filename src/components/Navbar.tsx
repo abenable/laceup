@@ -1,4 +1,4 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
@@ -9,9 +9,11 @@ import {
   ShoppingBagIcon,
   UserCircleIcon,
   Bars3Icon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Skeleton from "./Skeleton";
+import { kicksApi, type Sneaker } from "../services/api";
 
 const Navbar = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -22,10 +24,17 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartUpdated, setIsCartUpdated] = useState(false);
   const [isThemeTransitioning, setIsThemeTransitioning] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Sneaker[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
   const menuItemRefs = useRef<(HTMLAnchorElement | HTMLButtonElement)[]>([]);
   const totalItems = getItemCount();
+  const navigate = useNavigate();
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Escape") {
@@ -55,6 +64,16 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Handle search dropdown close
+      if (
+        searchResultsRef.current &&
+        searchInputRef.current &&
+        !searchResultsRef.current.contains(event.target as Node) &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchDropdown(false);
+      }
+
       // Handle dropdown close
       if (
         dropdownRef.current &&
@@ -118,6 +137,59 @@ const Navbar = () => {
     setTimeout(() => setIsThemeTransitioning(false), 300);
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (query.length >= 2) {
+      setIsSearching(true);
+      setShowSearchDropdown(true);
+      searchSneakers(query);
+    } else {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+    }
+  };
+
+  const searchSneakers = async (query: string) => {
+    try {
+      const response = await kicksApi.getAllKicks();
+      const allSneakers = response.data.data;
+
+      // Filter sneakers based on the query
+      const filteredSneakers = allSneakers
+        .filter(
+          (sneaker: Sneaker) =>
+            sneaker.name.toLowerCase().includes(query.toLowerCase()) ||
+            (sneaker.description &&
+              sneaker.description.toLowerCase().includes(query.toLowerCase()))
+        )
+        .slice(0, 5); // Limit to 5 results for dropdown
+
+      setSearchResults(filteredSneakers);
+      setIsSearching(false);
+    } catch (error) {
+      console.error("Error searching sneakers:", error);
+      setIsSearching(false);
+      setSearchResults([]);
+    }
+  };
+
+  const handleSearchItemClick = (sneakerId: number) => {
+    setShowSearchDropdown(false);
+    setSearchQuery("");
+    navigate(`/sneaker/${sneakerId}`);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim().length > 0) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
+      setShowSearchDropdown(false);
+    }
+  };
+
   const CartBadge = () =>
     totalItems > 0 && (
       <span
@@ -168,7 +240,6 @@ const Navbar = () => {
             { to: "/trending", label: "Trending" },
             { to: "/men", label: "Men" },
             { to: "/women", label: "Women" },
-            { to: "/contact", label: "Contact" },
           ].map(({ to, label }) => (
             <NavLink
               key={to}
@@ -210,23 +281,105 @@ const Navbar = () => {
     >
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 shrink-0">
-            <div className="w-10 h-10 bg-mono-dark dark:bg-mono-light rounded-lg flex items-center justify-center">
-              <span className="text-mono-light dark:text-mono-dark font-bold text-xl">
-                L
+          {/* Left section with Logo */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center space-x-2 shrink-0">
+              <div className="w-10 h-10 bg-mono-dark dark:bg-mono-light rounded-lg flex items-center justify-center">
+                <span className="text-mono-light dark:text-mono-dark font-bold text-xl">
+                  L
+                </span>
+              </div>
+              <span className="text-mono-dark dark:text-mono-light text-xl font-bold tracking-wider hover:text-mono-dark-600 dark:hover:text-mono-light-600 transition-colors duration-300">
+                LaceUp
               </span>
+            </Link>
+          </div>
+
+          {/* Center section with Navigation Links */}
+          <div className="hidden md:flex flex-1 justify-center">
+            {renderNavLinks()}
+          </div>
+
+          {/* Right section with Search and Actions */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Search Bar */}
+            <div className="max-w-[180px] mr-1 relative">
+              <form onSubmit={handleSearchSubmit}>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={() =>
+                    searchQuery.length >= 2 && setShowSearchDropdown(true)
+                  }
+                  placeholder="Search..."
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-mono-light-400 dark:border-mono-dark-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-mono-dark-600 dark:focus:ring-mono-light-600"
+                />
+                <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-mono-dark-600 dark:text-mono-light-600" />
+              </form>
+
+              {/* Search Results Dropdown */}
+              {showSearchDropdown && (
+                <div
+                  ref={searchResultsRef}
+                  className="absolute z-50 mt-1 w-72 max-h-80 overflow-auto bg-mono-light dark:bg-mono-dark border border-mono-light-400 dark:border-mono-dark-400 rounded-lg shadow-lg"
+                >
+                  {isSearching ? (
+                    <div className="p-4 text-center text-mono-dark-600 dark:text-mono-light-600">
+                      <Skeleton variant="text" className="h-5 w-full mb-2" />
+                      <Skeleton variant="text" className="h-5 w-full mb-2" />
+                      <Skeleton variant="text" className="h-5 w-3/4" />
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <div>
+                      {searchResults.map((sneaker) => (
+                        <div
+                          key={sneaker.id}
+                          className="p-3 border-b border-mono-light-400 dark:border-mono-dark-400 last:border-b-0 hover:bg-mono-light-400 dark:hover:bg-mono-dark-400 cursor-pointer transition-colors duration-150 flex items-center"
+                          onClick={() => handleSearchItemClick(sneaker.id)}
+                        >
+                          <div className="w-12 h-12 mr-3 overflow-hidden rounded">
+                            <img
+                              src={sneaker.image}
+                              alt={sneaker.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-mono-dark dark:text-mono-light font-medium text-sm truncate">
+                              {sneaker.name}
+                            </p>
+                            <p className="text-mono-dark-600 dark:text-mono-light-600 text-xs">
+                              ${parseFloat(sneaker.price).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="p-2 text-center border-t border-mono-light-400 dark:border-mono-dark-400">
+                        <button
+                          onClick={() => {
+                            navigate(
+                              `/search?q=${encodeURIComponent(searchQuery)}`
+                            );
+                            setShowSearchDropdown(false);
+                            setSearchQuery("");
+                          }}
+                          className="text-xs font-medium text-mono-dark-600 dark:text-mono-light-600 hover:text-mono-dark dark:hover:text-mono-light transition-colors duration-150"
+                        >
+                          See all results
+                        </button>
+                      </div>
+                    </div>
+                  ) : searchQuery.length >= 2 ? (
+                    <div className="p-4 text-center text-mono-dark-600 dark:text-mono-light-600">
+                      No results found for "{searchQuery}"
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
-            <span className="text-mono-dark dark:text-mono-light text-xl font-bold tracking-wider hover:text-mono-dark-600 dark:hover:text-mono-light-600 transition-colors duration-300">
-              LaceUp
-            </span>
-          </Link>
 
-          {/* Navigation Links - Center */}
-          {renderNavLinks()}
-
-          {/* Right Section */}
-          <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
             {/* Cart with Badge */}
             <Link
               to="/cart"
@@ -243,7 +396,7 @@ const Navbar = () => {
               )}
             </Link>
 
-            {/* Auth Section - Hide sign in button on mobile */}
+            {/* Auth Section */}
             {isLoading ? (
               <Skeleton variant="circular" className="w-8 h-8" />
             ) : user ? (
@@ -319,7 +472,7 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/login"
-                className="hidden md:block bg-mono-dark dark:bg-mono-light text-mono-light dark:text-mono-dark px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg hover:bg-mono-dark-800 dark:hover:bg-mono-light-800 transition-all duration-300 border-2 border-mono-dark dark:border-mono-light shadow-button hover:shadow-button-hover text-sm sm:text-base"
+                className="hidden md:block bg-mono-dark dark:bg-mono-light text-mono-light dark:text-mono-dark px-4 sm:px-5 py-1.5 sm:py-2 rounded-lg hover:bg-mono-dark-800 dark:hover:bg-mono-light-800 transition-all duration-300 border-2 border-mono-dark dark:border-mono-light shadow-button hover:shadow-button-hover text-sm"
               >
                 Sign In
               </Link>
@@ -359,6 +512,9 @@ const Navbar = () => {
             </button>
           </div>
         </div>
+
+        {/* Mobile menu - displayed below the navbar */}
+        <div className="md:hidden">{isMobileMenuOpen && renderNavLinks()}</div>
       </div>
     </nav>
   );
