@@ -305,18 +305,26 @@ const Navbar = () => {
             {/* Search Bar */}
             <div className="max-w-[180px] mr-1 relative">
               <form onSubmit={handleSearchSubmit}>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  onFocus={() =>
-                    searchQuery.length >= 2 && setShowSearchDropdown(true)
-                  }
-                  placeholder="Search..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-mono-light-400 dark:border-mono-dark-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-mono-dark-600 dark:focus:ring-mono-light-600"
-                />
-                <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-mono-dark-600 dark:text-mono-light-600" />
+                <div className="relative">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={() =>
+                      searchQuery.length >= 2 && setShowSearchDropdown(true)
+                    }
+                    placeholder="Search..."
+                    className="w-full pr-8 pl-3 py-1.5 text-sm text-mono-dark dark:text-mono-light bg-mono-light dark:bg-mono-dark border border-mono-light-400 dark:border-mono-dark-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-mono-dark-600 dark:focus:ring-mono-light-600"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-mono-dark-600 dark:text-mono-light-600 hover:text-mono-dark dark:hover:text-mono-light transition-colors duration-300"
+                    aria-label="Search"
+                  >
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </form>
 
               {/* Search Results Dropdown */}

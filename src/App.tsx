@@ -35,6 +35,9 @@ const TermsAndConditionsPage = lazy(
 const AccountPage = lazy(() => import("./pages/AccountPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
+const MenPage = lazy(() => import("./pages/MenPage"));
+const WomenPage = lazy(() => import("./pages/WomenPage"));
+const TrendingPage = lazy(() => import("./pages/TrendingPage"));
 
 function App() {
   return (
@@ -148,6 +151,21 @@ function App() {
                               <SettingsPage />
                             </ProtectedRoute>
                           }
+                          errorElement={<RouteErrorBoundary />}
+                        />
+                        <Route
+                          path="/men"
+                          element={<MenPage />}
+                          errorElement={<RouteErrorBoundary />}
+                        />
+                        <Route
+                          path="/women"
+                          element={<WomenPage />}
+                          errorElement={<RouteErrorBoundary />}
+                        />
+                        <Route
+                          path="/trending"
+                          element={<TrendingPage />}
                           errorElement={<RouteErrorBoundary />}
                         />
                         <Route path="*" element={<RouteErrorBoundary />} />
