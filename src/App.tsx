@@ -33,6 +33,7 @@ const TermsAndConditionsPage = lazy(
 );
 const AccountPage = lazy(() => import("./pages/AccountPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 
 function App() {
   return (
@@ -88,6 +89,11 @@ function App() {
                         <Route
                           path="/login"
                           element={<LoginPage />}
+                          errorElement={<RouteErrorBoundary />}
+                        />
+                        <Route
+                          path="/search"
+                          element={<SearchPage />}
                           errorElement={<RouteErrorBoundary />}
                         />
                         {/* New Routes */}
