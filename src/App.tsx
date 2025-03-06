@@ -10,6 +10,7 @@ import { CartProvider } from "./contexts/CartContext";
 import { ToastProvider } from "./components/Toast";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { Analytics } from "@vercel/analytics/react";
 
 // Lazy load pages with explicit typing
 const HomePage = lazy(() =>
@@ -155,6 +156,7 @@ function App() {
                   </main>
                   <Footer />
                 </div>
+                <Analytics />
               </CartProvider>
             </ToastProvider>
           </LoadingProvider>
