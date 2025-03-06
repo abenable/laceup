@@ -7,59 +7,26 @@ import {
   TruckIcon,
   ArrowPathIcon,
   ShieldCheckIcon,
-  StarIcon,
-  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { kicksApi, type Sneaker } from "../services/api";
 import { handleApiError } from "../services/errorUtils";
 import Alert from "../components/Alert";
 import Skeleton from "../components/Skeleton";
 import { withLoading } from "../components/withLoading";
+import FeatureCard from "../components/FeatureCard";
+import StarRating from "../components/StarRating";
+import newArrival from "../assets/dunk_low.png";
+import trending from "../assets/pegasus.jpeg";
+import bestSeller from "../assets/superstart.png";
+import img1 from "../assets/testmonials/img.jpg";
+import img2 from "../assets/testmonials/img2.jpg";
+import img3 from "../assets/testmonials/img3.jpg";
 
-const FeatureCard = ({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: any;
-  title: string;
-  description: string;
-}) => (
-  <div className="bg-mono-light-800 dark:bg-mono-dark-800 p-6 rounded-lg border-2 border-mono-light-400 dark:border-mono-dark-400 shadow-card hover:shadow-card-hover transition-all duration-300">
-    <div className="flex flex-col items-center text-center space-y-4">
-      <div className="p-3 bg-mono-dark dark:bg-mono-light rounded-full">
-        <Icon className="w-6 h-6 text-mono-light dark:text-mono-dark" />
-      </div>
-      <h3 className="text-lg font-semibold text-mono-dark dark:text-mono-light">
-        {title}
-      </h3>
-      <p className="text-mono-dark-600 dark:text-mono-light-600">
-        {description}
-      </p>
-    </div>
-  </div>
-);
-
-const StarRating = ({ rating }: { rating: number }) => (
-  <div className="flex items-center gap-1">
-    {[1, 2, 3, 4, 5].map((star) => (
-      <StarIcon
-        key={star}
-        className={`w-4 h-4 ${
-          star <= rating
-            ? "text-yellow-400 fill-current"
-            : "text-mono-dark-400 dark:text-mono-light-400"
-        }`}
-      />
-    ))}
-  </div>
-);
-
-const HomePage = () => {
+function HomePage() {
   const [sneakers, setSneakers] = useState<Sneaker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery] = useState(""); // Keeping state for potential future use
   const { addToCart, cartItems, removeFromCart } = useCart();
 
   useEffect(() => {
@@ -204,17 +171,17 @@ const HomePage = () => {
               {
                 title: "New Arrivals",
                 path: "/category/new-arrivals",
-                image: "/new-arrivals.jpg",
+                image: newArrival,
               },
               {
                 title: "Trending Now",
                 path: "/category/trending",
-                image: "/trending.jpg",
+                image: trending,
               },
               {
                 title: "Best Sellers",
                 path: "/category/top-sellers",
-                image: "/best-sellers.jpg",
+                image: bestSeller,
               },
             ].map((collection) => (
               <Link
@@ -240,19 +207,7 @@ const HomePage = () => {
       </div>
 
       <div className="container mx-auto px-4 py-16">
-        {/* Search Section */}
-        <div className="max-w-2xl mx-auto mb-12">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search for sneakers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-12 rounded-lg bg-mono-light-800 dark:bg-mono-dark-800 border-2 border-mono-light-400 dark:border-mono-dark-400 focus:border-mono-dark dark:focus:border-mono-light focus:outline-none transition-colors text-mono-dark dark:text-mono-light"
-            />
-            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-mono-dark-600 dark:text-mono-light-600" />
-          </div>
-        </div>
+        {/* Search section removed */}
 
         {error && <Alert type="error">{error}</Alert>}
 
@@ -292,12 +247,12 @@ const HomePage = () => {
                 <div className="flex justify-between items-center">
                   <div className="space-y-1">
                     <span className="text-lg sm:text-xl font-bold text-mono-dark dark:text-mono-light">
-                      ${parseFloat(sneaker.price).toFixed(2)}
+                      UGX {parseFloat(sneaker.price).toFixed(2)}
                     </span>
                     {parseFloat(sneaker.price) >= 200 && (
                       <div className="flex items-center gap-2">
                         <span className="text-xs sm:text-sm line-through text-mono-dark-600 dark:text-mono-light-600">
-                          ${(parseFloat(sneaker.price) * 1.2).toFixed(2)}
+                          UGX {(parseFloat(sneaker.price) * 1.2).toFixed(2)}
                         </span>
                         <span className="text-xs px-2 py-0.5 sm:py-1 bg-red-500 text-white rounded-full">
                           -20%
@@ -362,19 +317,19 @@ const HomePage = () => {
             {[
               {
                 name: "Alex Johnson",
-                image: "/testimonials/alex.jpg",
+                image: img1,
                 text: "Best sneaker shopping experience ever! The quality is outstanding.",
                 rating: 5,
               },
               {
                 name: "Sarah Williams",
-                image: "/testimonials/sarah.jpg",
+                image: img2,
                 text: "Amazing selection and fast shipping. Will definitely shop here again!",
                 rating: 5,
               },
               {
                 name: "Mike Brown",
-                image: "/testimonials/mike.jpg",
+                image: img3, // updated image variable for Mike Brown
                 text: "Great customer service and authentic products. Highly recommend!",
                 rating: 4,
               },
@@ -429,6 +384,7 @@ const HomePage = () => {
       </div>
     </div>
   );
-};
+}
 
-export default withLoading(HomePage);
+const WrappedHomePage = withLoading(HomePage);
+export default WrappedHomePage;

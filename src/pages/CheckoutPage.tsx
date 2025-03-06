@@ -235,20 +235,20 @@ const CheckoutPage = () => {
             <div className="space-y-4">
               <div className="flex justify-between text-cyber-dark dark:text-cyber-light">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>UGX {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-cyber-dark dark:text-cyber-light">
                 <span>Shipping</span>
-                <span>${shipping.toFixed(2)}</span>
+                <span>UGX {shipping.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-cyber-dark dark:text-cyber-light">
                 <span>Tax</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>UGX {tax.toFixed(2)}</span>
               </div>
               <div className="pt-4 border-t border-cyber-primary/20">
                 <div className="flex justify-between text-lg font-semibold text-cyber-dark dark:text-cyber-light">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>UGX {total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -273,7 +273,7 @@ const CheckoutPage = () => {
                     <p className="text-sm text-cyber-muted">
                       Size: {item.size} | Quantity: {item.quantity}
                     </p>
-                    <p className="text-cyber-primary">${item.price}</p>
+                    <p className="text-cyber-primary">UGX {item.price}</p>
                   </div>
                 </div>
               ))}

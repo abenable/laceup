@@ -141,7 +141,7 @@ const CategoryPage = () => {
                 </h3>
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-bold text-mono-dark dark:text-mono-light">
-                    ${parseFloat(sneaker.price).toFixed(2)}
+                    UGX {parseFloat(sneaker.price).toFixed(2)}
                   </span>
                   <button
                     onClick={(e) => handleAddToCart(e, sneaker)}

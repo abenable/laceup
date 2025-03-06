@@ -139,7 +139,7 @@ const CartPage = () => {
                   <div className="flex flex-wrap gap-4 text-sm text-mono-dark-600 dark:text-mono-light-600">
                     <p>Size: {item.size}</p>
                     <p className="font-medium text-mono-dark dark:text-mono-light">
-                      ${item.price}
+                      UGX {item.price}
                     </p>
                   </div>
                 </div>
@@ -205,7 +205,7 @@ const CartPage = () => {
                     Subtotal
                   </span>
                   <span className="text-lg font-medium text-mono-dark dark:text-mono-light">
-                    ${total.toFixed(2)}
+                    UGX {total.toFixed(2)}
                   </span>
                 </div>
 

@@ -5,11 +5,24 @@ import Alert from "../components/Alert";
 import { TrashIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../contexts/AuthContext";
 
+interface SneakerFormData {
+  name: string;
+  price: string;
+  category: string;
+  description: string;
+}
+
 const AdminPage = () => {
   const [sneakers, setSneakers] = useState<Sneaker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>(new FormData());
+  const [sneakerFormData, setSneakerFormData] = useState<SneakerFormData>({
+    name: "",
+    price: "",
+    category: "",
+    description: "",
+  });
   const [editingSneaker, setEditingSneaker] = useState<Sneaker | null>(null);
   const { user } = useAuth();
 
@@ -35,6 +48,10 @@ const AdminPage = () => {
     if (files && files[0]) {
       const newFormData = new FormData();
       newFormData.append("image", files[0]);
+      // Transfer existing form data
+      Object.entries(sneakerFormData).forEach(([key, value]) => {
+        newFormData.append(key, value);
+      });
       setFormData(newFormData);
     }
   };
@@ -46,7 +63,20 @@ const AdminPage = () => {
     if (editingSneaker) {
       setEditingSneaker({ ...editingSneaker, [name]: value });
     } else {
-      formData.set(name, value);
+      setSneakerFormData((prev) => ({ ...prev, [name]: value }));
+      // Update FormData as well
+      const newFormData = new FormData();
+      // Keep the existing image if there is one
+      const existingImage = formData.get("image");
+      if (existingImage) {
+        newFormData.append("image", existingImage);
+      }
+      // Update with all current form values
+      const updatedData = { ...sneakerFormData, [name]: value };
+      Object.entries(updatedData).forEach(([key, value]) => {
+        newFormData.append(key, value);
+      });
+      setFormData(newFormData);
     }
   };
 
@@ -60,7 +90,14 @@ const AdminPage = () => {
         await kicksApi.addKick(formData);
       }
       fetchSneakers();
+      // Reset form
       setFormData(new FormData());
+      setSneakerFormData({
+        name: "",
+        price: "",
+        category: "",
+        description: "",
+      });
       setEditingSneaker(null);
     } catch (err) {
       setError(handleApiError(err));
@@ -77,6 +114,26 @@ const AdminPage = () => {
     } catch (err) {
       setError(handleApiError(err));
     }
+  };
+
+  const handleEdit = (sneaker: Sneaker) => {
+    setEditingSneaker(sneaker);
+    setSneakerFormData({
+      name: sneaker.name,
+      price: sneaker.price.toString(),
+      category: sneaker.category,
+      description: sneaker.description,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSneaker(null);
+    setSneakerFormData({
+      name: "",
+      price: "",
+      category: "",
+      description: "",
+    });
   };
 
   if (!user || user.role !== "admin") {
@@ -98,47 +155,52 @@ const AdminPage = () => {
         <h2 className="text-xl font-semibold text-mono-dark dark:text-mono-light">
           {editingSneaker ? "Edit Sneaker" : "Add New Sneaker"}
         </h2>
-
         <div className="space-y-4">
           <input
             type="text"
             name="name"
             placeholder="Sneaker Name"
-            value={editingSneaker?.name || ""}
+            value={editingSneaker ? editingSneaker.name : sneakerFormData.name}
             onChange={handleInputChange}
             className="w-full px-4 py-2 rounded-lg bg-mono-light-800 dark:bg-mono-dark-800 border-2 border-mono-light-400 dark:border-mono-dark-400 text-mono-dark dark:text-mono-light"
             required
           />
-
           <input
-            type="text"
+            type="number"
             name="price"
             placeholder="Price"
-            value={editingSneaker?.price || ""}
+            value={
+              editingSneaker ? editingSneaker.price : sneakerFormData.price
+            }
             onChange={handleInputChange}
             className="w-full px-4 py-2 rounded-lg bg-mono-light-800 dark:bg-mono-dark-800 border-2 border-mono-light-400 dark:border-mono-dark-400 text-mono-dark dark:text-mono-light"
             required
           />
-
           <input
             type="text"
             name="category"
             placeholder="Category"
-            value={editingSneaker?.category || ""}
+            value={
+              editingSneaker
+                ? editingSneaker.category
+                : sneakerFormData.category
+            }
             onChange={handleInputChange}
             className="w-full px-4 py-2 rounded-lg bg-mono-light-800 dark:bg-mono-dark-800 border-2 border-mono-light-400 dark:border-mono-dark-400 text-mono-dark dark:text-mono-light"
             required
           />
-
           <textarea
             name="description"
             placeholder="Description"
-            value={editingSneaker?.description || ""}
+            value={
+              editingSneaker
+                ? editingSneaker.description
+                : sneakerFormData.description
+            }
             onChange={handleInputChange}
             className="w-full px-4 py-2 rounded-lg bg-mono-light-800 dark:bg-mono-dark-800 border-2 border-mono-light-400 dark:border-mono-dark-400 text-mono-dark dark:text-mono-light"
             required
           />
-
           {!editingSneaker && (
             <input
               type="file"
@@ -149,7 +211,6 @@ const AdminPage = () => {
             />
           )}
         </div>
-
         <div className="flex gap-4">
           <button
             type="submit"
@@ -160,7 +221,7 @@ const AdminPage = () => {
           {editingSneaker && (
             <button
               type="button"
-              onClick={() => setEditingSneaker(null)}
+              onClick={handleCancelEdit}
               className="px-6 py-2 bg-mono-light-400 dark:bg-mono-dark-400 text-mono-dark dark:text-mono-light rounded-lg font-semibold hover:bg-mono-light-600 dark:hover:bg-mono-dark-600 transition-all duration-300"
             >
               Cancel
@@ -202,11 +263,11 @@ const AdminPage = () => {
                   {sneaker.name}
                 </h3>
                 <p className="text-mono-dark-600 dark:text-mono-light-600">
-                  ${parseFloat(sneaker.price).toFixed(2)}
+                  UGX {parseFloat(sneaker.price).toFixed(2)}
                 </p>
                 <div className="mt-4 flex gap-4">
                   <button
-                    onClick={() => setEditingSneaker(sneaker)}
+                    onClick={() => handleEdit(sneaker)}
                     className="p-2 rounded-lg bg-mono-dark dark:bg-mono-light text-mono-light dark:text-mono-dark hover:bg-mono-dark-800 dark:hover:bg-mono-light-800 transition-all duration-300"
                   >
                     <PencilIcon className="h-5 w-5" />
